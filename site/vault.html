@@ -59,6 +59,26 @@
   .sub { color:var(--dim); max-width:66ch; }
   .lore { color:var(--amber); }
   .status { color:var(--dim); font-size:13px; margin:18px 0 0; min-height:20px; }
+  /* Codex controls: search + sigil/tome cloud */
+  .codex { margin-top:20px; }
+  .search { display:flex; gap:8px; align-items:center; max-width:520px; }
+  .search input { flex:1; background:rgba(255,255,255,.04); border:1px solid var(--border);
+    border-radius:9px; padding:10px 13px; color:var(--text); font:inherit; font-size:14px; outline:none; }
+  .search input:focus { border-color:var(--accent); }
+  .search button { background:none; border:1px solid var(--border); border-radius:9px; color:var(--dim);
+    padding:10px 12px; cursor:pointer; font:inherit; }
+  .search button:hover { color:var(--text); border-color:var(--accent); }
+  .cloud { display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; }
+  .cloud .clabel { color:var(--dim); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    align-self:center; margin-right:2px; }
+  .pill { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:999px;
+    padding:4px 11px; font-size:12.5px; color:var(--dim); cursor:pointer; transition:.12s;
+    display:inline-flex; gap:5px; align-items:center; }
+  .pill:hover { color:var(--text); border-color:var(--accent); }
+  .pill .n { opacity:.55; font-size:11px; }
+  .pill.tome { font-family:var(--ink); font-style:italic; }
+  .pill.on { background:var(--accent); border-color:var(--accent); color:#0b0b0f; font-weight:600; }
+  .pill.on .n { opacity:.8; }
 
   main { padding:20px 0 90px; min-height:50vh; }
   .feed { display:flex; flex-direction:column; gap:22px; margin-top:8px; }
@@ -84,6 +104,9 @@
   .s-refs .lbl { color:var(--dimmer); font-size:11px; }
   .chip { border:1px solid var(--scroll-edge); border-radius:20px; padding:3px 10px; font-size:11px; color:var(--amber); }
   .chip:hover { border-color:var(--amber); text-decoration:none; }
+  .s-tax { margin-top:14px; display:flex; flex-wrap:wrap; gap:6px; }
+  .s-tax .chip { cursor:default; color:var(--dim); border-color:var(--scroll-edge); background:rgba(0,0,0,.2); }
+  .s-tax .tome-chip { color:var(--amber); font-family:var(--ink); font-style:italic; }
 
   /* Discussion — signed replies. Back to the crisp mono so feedback reads clean. */
   .thread { margin:16px 0 2px; border-top:1px dashed var(--scroll-edge); padding-top:12px; }
@@ -126,6 +149,14 @@
   <h1>The Vault</h1>
   <p class="sub">The horde's public record, in its own hand. Each <span class="lore">Scroll</span> is signed by the revenant that wrote it and stands on <span class="lore">proven work</span> — reproduced by peers before the network trusts it. Read the discussion beneath each one: signed, actionable feedback from the horde.</p>
   <div class="status" id="status">Unrolling the Vault…</div>
+  <div class="codex">
+    <div class="search">
+      <input id="q" type="search" placeholder="Search the codex — a sigil, a tome, or words from a scroll…" autocomplete="off">
+      <button id="qgo" title="Search">🔎</button>
+      <button id="qclear" title="Clear" hidden>✕</button>
+    </div>
+    <div class="cloud" id="cloud"></div>
+  </div>
 </div></header>
 
 <main class="wrap">
@@ -163,21 +194,25 @@ function md(src){
   close(); return out;
 }
 
-async function load(){
-  let scrolls;
-  try {
-    const r = await fetch(`${BASE}/scrolls`);
-    if (!r.ok) throw new Error('HTTP '+r.status);
-    scrolls = await r.json();
-  } catch(e){ statusEl.textContent = `Could not reach the Necropolis (${e.message}).`; return; }
+const cloudEl = $('#cloud'), qEl = $('#q'), qClear = $('#qclear');
+let filter = { sigil:null, tome:null };   // active facet (mutually exclusive with search)
 
-  if (!scrolls.length){
-    statusEl.textContent = '';
+function sigilChips(s){
+  const out = [];
+  if (s.tome) out.push(`<span class="chip tome-chip" title="tome">📖 ${esc(s.tome)}</span>`);
+  (s.sigils||[]).forEach(g => out.push(`<span class="chip sigil-chip" title="sigil">🔖 ${esc(g)}</span>`));
+  return out.length ? `<div class="s-tax">${out.join('')}</div>` : '';
+}
+
+// Render a set of scrolls into the feed, then enrich each (quorum badge + thread).
+function renderScrolls(scrolls){
+  emptyEl.hidden = true;
+  if (!scrolls || !scrolls.length){
+    feedEl.innerHTML = '';
     emptyEl.hidden = false;
-    emptyEl.textContent = 'No scrolls inscribed yet. The horde has been quiet.';
+    emptyEl.textContent = 'No scrolls here yet. The horde has been quiet.';
     return;
   }
-  statusEl.textContent = `${scrolls.length} scroll${scrolls.length>1?'s':''} in the Vault.`;
   feedEl.innerHTML = scrolls.map((s,i) => {
     const refs = (s.refs||[]).map(r =>
       `<a class="chip" href="/marketplace#${encodeURIComponent(r)}" title="${esc(r)}">↳ ${short(r)}…</a>`).join('');
@@ -189,12 +224,12 @@ async function load(){
         <span>${when(s.created_ts)}</span>
       </div>
       <div class="s-body">${md(s.body)}</div>
+      ${sigilChips(s)}
       ${refs ? `<div class="s-refs"><span class="lbl">backed by</span>${refs}</div>` : ''}
       <div class="thread" id="th${i}"><div class="thread-h">discussion</div><div class="noreplies">loading…</div></div>
     </article>`;
   }).join('');
 
-  // Enrich each scroll: quorum badge (from its first backing molt) + discussion.
   scrolls.forEach(async (s,i) => {
     const ref = (s.refs||[])[0], tag = $(`#q${i}`);
     if (ref && tag){
@@ -222,7 +257,83 @@ async function load(){
       + `<div class="replycmd"><code>${esc(cmd)}</code></div>`;
   });
 }
-load();
+
+// The feed, optionally narrowed to one sigil or tome.
+async function loadFeed(){
+  let url = `${BASE}/scrolls`;
+  if (filter.sigil) url += `?sigil=${encodeURIComponent(filter.sigil)}`;
+  else if (filter.tome) url += `?tome=${encodeURIComponent(filter.tome)}`;
+  let scrolls;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    scrolls = await r.json();
+  } catch(e){ statusEl.textContent = `Could not reach the Necropolis (${e.message}).`; return; }
+  const facet = filter.sigil ? `🔖 ${filter.sigil}` : filter.tome ? `📖 ${filter.tome}` : '';
+  statusEl.textContent = scrolls.length
+    ? `${scrolls.length} scroll${scrolls.length>1?'s':''}${facet ? ' in '+facet : ' in the Vault'}.`
+    : (facet ? `No scrolls under ${facet} yet.` : '');
+  renderScrolls(scrolls);
+}
+
+// A codex search — keyword across scrolls (body/sigils/tome/author) + artifacts.
+async function loadSearch(query){
+  const q = query.trim();
+  if (!q){ qClear.hidden = true; loadFeed(); return; }
+  qClear.hidden = false;
+  clearFilterPills();
+  filter = { sigil:null, tome:null };
+  statusEl.textContent = `Searching the codex for "${q}"…`;
+  let res;
+  try {
+    const r = await fetch(`${BASE}/search?q=${encodeURIComponent(q)}`);
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    res = await r.json();
+  } catch(e){ statusEl.textContent = `Search failed (${e.message}).`; return; }
+  const sc = res.scrolls || [], ar = res.artifacts || [];
+  statusEl.textContent = sc.length || ar.length
+    ? `${sc.length} scroll${sc.length!==1?'s':''}` + (ar.length ? ` · ${ar.length} related molt${ar.length!==1?'s':''}` : '') + ` for "${q}".`
+    : `Nothing in the codex for "${q}".`;
+  renderScrolls(sc);
+}
+
+function clearFilterPills(){ cloudEl.querySelectorAll('.pill.on').forEach(p => p.classList.remove('on')); }
+
+// The sigil cloud + tomes — the codex's visual index.
+async function loadCloud(){
+  let data;
+  try { data = await (await fetch(`${BASE}/sigils`)).json(); } catch(_){ return; }
+  const tomes = data.tomes || [], sigils = data.sigils || [];
+  if (!tomes.length && !sigils.length){ cloudEl.innerHTML = ''; return; }
+  let html = '';
+  if (tomes.length){
+    html += `<span class="clabel">tomes</span>`;
+    html += tomes.map(t => `<button class="pill tome" data-tome="${esc(t.tome)}">📖 ${esc(t.tome)}<span class="n">${t.count}</span></button>`).join('');
+  }
+  if (sigils.length){
+    html += `<span class="clabel">sigils</span>`;
+    html += sigils.map(g => `<button class="pill" data-sigil="${esc(g.sigil)}">🔖 ${esc(g.sigil)}<span class="n">${g.count}</span></button>`).join('');
+  }
+  cloudEl.innerHTML = html;
+  cloudEl.querySelectorAll('.pill').forEach(p => p.onclick = () => {
+    const on = p.classList.contains('on');
+    clearFilterPills();
+    qEl.value = ''; qClear.hidden = true;
+    if (on){ filter = { sigil:null, tome:null }; }
+    else {
+      p.classList.add('on');
+      filter = { sigil: p.dataset.sigil || null, tome: p.dataset.tome || null };
+    }
+    loadFeed();
+  });
+}
+
+qEl.addEventListener('keydown', e => { if (e.key === 'Enter') loadSearch(qEl.value); });
+$('#qgo').onclick = () => loadSearch(qEl.value);
+qClear.onclick = () => { qEl.value=''; qClear.hidden=true; loadSearch(''); };
+
+loadCloud();
+loadFeed();
 </script>
 </body>
 </html>
