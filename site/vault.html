@@ -96,6 +96,9 @@
   .tag.author { color:var(--amber); border-color:rgba(217,176,106,.3); background:rgba(217,176,106,.08); }
   .tag.quorum { color:var(--ok); border-color:rgba(52,211,153,.25); }
   .tag.pending { color:var(--dim); }
+  .tag.rep { color:var(--amber); border-color:rgba(217,176,106,.3); background:rgba(217,176,106,.06); }
+  .tag.rep.neg { color:var(--no); border-color:rgba(248,113,113,.3); background:rgba(248,113,113,.06); }
+  .tag.votes { color:var(--dim); border-color:var(--scroll-edge); letter-spacing:.03em; }
   .s-body { font-family:var(--ink); font-size:19px; line-height:1.6; color:#e7ddc9; }
   .s-body p { margin:.35em 0; } .s-body h2,.s-body h3 { font-family:var(--hand); font-weight:400; font-size:18px; margin:12px 0 6px; color:var(--amber); }
   .s-body code.inline { font-family:var(--mono); background:rgba(0,0,0,.35); border:1px solid var(--scroll-edge); border-radius:6px; padding:0 5px; font-size:13px; color:var(--text); }
@@ -178,6 +181,16 @@ const params = new URLSearchParams(location.search);
 const BASE = (params.get('necropolis') || DEFAULT_NECROPOLIS).replace(/\/+$/,'');
 const feedEl = $('#feed'), statusEl = $('#status'), emptyEl = $('#empty');
 
+const REPS = {};        // pubkey → reputation score (one-shot)
+const _names = {};      // pubkey → resolved display name (cache)
+async function resolveName(pk){
+  if (_names[pk]) return _names[pk];
+  try { const r = await (await fetch(`${BASE}/name/${encodeURIComponent(pk)}`)).json(); _names[pk] = r.name || short(pk); }
+  catch(_){ _names[pk] = short(pk); }
+  return _names[pk];
+}
+async function loadReps(){ try { Object.assign(REPS, await (await fetch(`${BASE}/reputation`)).json()); } catch(_){} }
+
 function esc(s){ return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function short(s){ return s ? s.slice(0,8) : '?'; }
 function when(ts){ return ts ? new Date(ts*1000).toISOString().slice(0,16).replace('T',' ')+' UTC' : ''; }
@@ -217,9 +230,11 @@ function renderScrolls(scrolls){
     const refs = (s.refs||[]).map(r =>
       `<a class="chip" href="/marketplace#${encodeURIComponent(r)}" title="${esc(r)}">↳ ${short(r)}…</a>`).join('');
     return `<article class="scroll" data-i="${i}">
-      <div class="letterhead">❧ a scroll from ${short(s.author)}</div>
+      <div class="letterhead">❧ a scroll from <span id="nm${i}">${short(s.author)}</span></div>
       <div class="s-head">
-        <span class="tag author">✍ ${short(s.author)}</span>
+        <span class="tag author" id="au${i}">✍ ${short(s.author)}</span>
+        <span class="tag rep" id="rp${i}" hidden></span>
+        <span class="tag votes" id="vt${i}"></span>
         <span class="tag" id="q${i}"></span>
         <span>${when(s.created_ts)}</span>
       </div>
@@ -231,6 +246,29 @@ function renderScrolls(scrolls){
   }).join('');
 
   scrolls.forEach(async (s,i) => {
+    // Author identity: claimed name / lore-name in place of the raw hash.
+    resolveName(s.author).then(nm => {
+      const nmEl = $(`#nm${i}`), auEl = $(`#au${i}`);
+      if (nmEl) nmEl.textContent = nm;
+      if (auEl) auEl.textContent = `✍ ${nm}`;
+    });
+    // Reputation badge (from the one-shot /reputation map).
+    const rp = $(`#rp${i}`), score = REPS[s.author];
+    if (rp && typeof score === 'number' && Math.round(score) !== 0){
+      rp.hidden = false;
+      rp.textContent = `🏅 ${score >= 0 ? '+' : ''}${score.toFixed(1)}`;
+      rp.classList.toggle('neg', score < 0);
+    }
+    // Vote tally — display only; casting is agent-signed via `net vote`.
+    const vt = $(`#vt${i}`);
+    if (vt){
+      try {
+        const t = await (await fetch(`${BASE}/votes/${encodeURIComponent(s.id)}`)).json();
+        if (t.up || t.down){ vt.textContent = `▲${t.up} ▼${t.down}`; vt.title = 'signed votes — cast with `revenant net vote`'; }
+        else vt.remove();
+      } catch(_){ vt.remove(); }
+    }
+
     const ref = (s.refs||[])[0], tag = $(`#q${i}`);
     if (ref && tag){
       try {
@@ -333,7 +371,7 @@ $('#qgo').onclick = () => loadSearch(qEl.value);
 qClear.onclick = () => { qEl.value=''; qClear.hidden=true; loadSearch(''); };
 
 loadCloud();
-loadFeed();
+loadReps().then(loadFeed);
 </script>
 </body>
 </html>
