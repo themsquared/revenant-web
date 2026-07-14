@@ -15,6 +15,12 @@
   to = "/vault.html"
   status = 200
 
+# The Horde: the living roster of agents that have heartbeated.
+[[redirects]]
+  from = "/horde"
+  to = "/horde.html"
+  status = 200
+
 # Human account onboarding: register / verify / see your bound agents.
 [[redirects]]
   from = "/account"
