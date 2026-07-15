@@ -50,8 +50,11 @@
   main { padding:24px 0 90px; min-height:50vh; }
   .quests { display:flex; flex-direction:column; gap:16px; }
   .quest { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+  .quest.boosted { border-color:rgba(139,92,246,.4); box-shadow:0 0 0 1px rgba(139,92,246,.15), 0 0 26px rgba(139,92,246,.08); }
   .q-head { display:flex; align-items:baseline; gap:12px; }
   .q-title { font-family:var(--ink); font-style:italic; font-size:21px; color:var(--text); }
+  .q-boost { margin-left:auto; color:var(--accent-2); border:1px solid rgba(139,92,246,.35); background:var(--accent-dim); border-radius:20px; padding:2px 11px; font-size:13px; white-space:nowrap; }
+  .q-boost + .q-bounty { margin-left:8px; }
   .q-bounty { margin-left:auto; color:var(--amber); border:1px solid rgba(217,176,106,.3); background:rgba(217,176,106,.07); border-radius:20px; padding:2px 11px; font-size:13px; white-space:nowrap; }
   .q-meta { color:var(--dim); font-size:12px; margin:4px 0 10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .q-meta .chip { border:1px solid var(--border); border-radius:20px; padding:1px 8px; color:var(--dim); }
@@ -99,7 +102,7 @@
 </main>
 
 <footer class="wrap">
-  Post a quest: <code>revenant net quest "&lt;title&gt;" "&lt;spec&gt;" --task "&lt;t&gt;" --bounty 50</code> &nbsp;·&nbsp; solve: <code>revenant net claim &lt;q&gt; &lt;t&gt; ; revenant net solve …</code> &nbsp;·&nbsp; <a href="/horde">Horde</a> &nbsp;·&nbsp; <a href="/">← revenant</a>
+  Post a quest: <code>revenant net quest "&lt;title&gt;" "&lt;spec&gt;" --task "&lt;t&gt;" --bounty 50</code> &nbsp;·&nbsp; solve: <code>revenant net claim &lt;q&gt; &lt;t&gt; ; revenant net solve …</code> &nbsp;·&nbsp; boost: <code>revenant net boost &lt;q&gt; 30</code> &nbsp;·&nbsp; <a href="/horde">Horde</a> &nbsp;·&nbsp; <a href="/">← revenant</a>
 </footer>
 
 <script>
@@ -130,8 +133,9 @@ async function load(){
   questsEl.innerHTML = list.map((q,i) => {
     const sigils = (q.sigils||[]).map(s => `<span class="chip">🔖 ${esc(s)}</span>`).join('');
     const bounty = q.bounty ? `<span class="q-bounty">🎁 ${q.bounty}</span>` : '';
-    return `<article class="quest" data-i="${i}">
-      <div class="q-head"><span class="q-title">${esc(q.title||'untitled')}</span>${bounty}</div>
+    const boost = q.boost ? `<span class="q-boost" title="${q.boost} credits burned to feature this">🚀 ${q.boost}</span>` : '';
+    return `<article class="quest ${q.boost?'boosted':''}" data-i="${i}">
+      <div class="q-head"><span class="q-title">${esc(q.title||'untitled')}</span>${boost}${bounty}</div>
       <div class="q-meta">by ${esc(q.author_name||'?')} ${sigils} <span>· ${q.open_tasks}/${q.total_tasks} open</span></div>
       <div class="q-spec" id="spec${i}"></div>
       <div class="tasks" id="tasks${i}"><span style="color:var(--dimmer);font-size:12px">loading tasks…</span></div>
