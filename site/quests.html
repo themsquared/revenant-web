@@ -149,5 +149,10 @@ async function load(){
 }
 load();
 </script>
+<script>
+if (localStorage.getItem('rev_session')) {
+  document.querySelectorAll('.nav-links a.lnk[href="/account"]').forEach(a => { a.textContent = 'My Horde'; a.href = '/horde'; });
+}
+</script>
 </body>
 </html>

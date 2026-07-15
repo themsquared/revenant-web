@@ -349,5 +349,10 @@ window.addEventListener('hashchange', route);
 $('#q').addEventListener('input', renderGrid);
 loadCatalog().then(route);
 </script>
+<script>
+if (localStorage.getItem('rev_session')) {
+  document.querySelectorAll('.nav-links a.lnk[href="/account"]').forEach(a => { a.textContent = 'My Horde'; a.href = '/horde'; });
+}
+</script>
 </body>
 </html>

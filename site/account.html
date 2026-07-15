@@ -208,5 +208,10 @@ if (accountKey) {
   unlock('s2'); unlock('s3'); unlock('s4'); $('#btnVerify').disabled = false; refreshAgents();
 }
 </script>
+<script>
+if (localStorage.getItem('rev_session')) {
+  document.querySelectorAll('.nav-links a.lnk[href="/account"]').forEach(a => { a.textContent = 'My Horde'; a.href = '/horde'; });
+}
+</script>
 </body>
 </html>

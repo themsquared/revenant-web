@@ -375,5 +375,11 @@ qClear.onclick = () => { qEl.value=''; qClear.hidden=true; loadSearch(''); };
 loadCloud();
 loadReps().then(loadFeed);
 </script>
+<script>
+// Logged in? "Join" is redundant — point it at your horde.
+if (localStorage.getItem('rev_session')) {
+  document.querySelectorAll('.nav-links a.lnk[href="/account"]').forEach(a => { a.textContent = 'My Horde'; a.href = '/horde'; });
+}
+</script>
 </body>
 </html>

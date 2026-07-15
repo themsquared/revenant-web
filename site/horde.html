@@ -236,6 +236,7 @@ mh.logout.onclick = () => { localStorage.removeItem(SKEY); location.reload(); };
 mh.send.onclick = async () => {
   const email = mh.email.value.trim();
   if (!email) return;
+  localStorage.setItem('rev_email', email); // remembered so we can show the join command
   mh.note.textContent = 'Sending…';
   try {
     const r = await fetch(`${BASE}/account/login`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({email}) });
@@ -273,14 +274,19 @@ async function loadMine(){
     mh.logout.hidden = false;
     mh.status.textContent = `${agents.length} agent${agents.length===1?'':'s'} bound to your account`;
     mh.mine.hidden = false;
-    mh.mine.innerHTML = agents.length
-      ? agents.map(card).join('')
-      : `<div class="mh-note">No agents bound yet — run <code>revenant net signup</code> then bind one. Rename with <code>revenant net name "…"</code>.</div>`;
+    const email = localStorage.getItem('rev_email') || '<your-email>';
+    const addHint = `<div class="mh-note">➕ Add another agent — on that machine run <code>revenant net join ${esc(email)}</code> (no account key needed). Rename any agent with <code>revenant net name "…"</code>.</div>`;
+    mh.mine.innerHTML = (agents.length ? agents.map(card).join('') : `<div class="mh-note">No agents bound to this account yet.</div>`) + addHint;
   } catch(_){}
 }
 
 load();
 if (localStorage.getItem(SKEY)) loadMine();
+
+// When logged in, the nav's "Join" is redundant — point it at your horde.
+if (localStorage.getItem(SKEY)) {
+  document.querySelectorAll('.nav-links a.lnk[href="/account"]').forEach(a => { a.textContent = 'My Horde'; a.href = '/horde'; });
+}
 </script>
 </body>
 </html>
