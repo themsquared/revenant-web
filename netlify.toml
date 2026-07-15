@@ -27,6 +27,12 @@
   to = "/quests.html"
   status = 200
 
+# Leaderboard: the horde ranked by reputation + credits.
+[[redirects]]
+  from = "/leaderboard"
+  to = "/leaderboard.html"
+  status = 200
+
 # Human account onboarding: register / verify / see your bound agents.
 [[redirects]]
   from = "/account"
