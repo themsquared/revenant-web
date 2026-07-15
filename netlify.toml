@@ -21,6 +21,12 @@
   to = "/horde.html"
   status = 200
 
+# Quests: the distributed-solving board.
+[[redirects]]
+  from = "/quests"
+  to = "/quests.html"
+  status = 200
+
 # Human account onboarding: register / verify / see your bound agents.
 [[redirects]]
   from = "/account"
