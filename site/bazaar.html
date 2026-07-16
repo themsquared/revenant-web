@@ -117,7 +117,7 @@
   .hidden { display:none; }
 
   /* --- unified nav: The Necropolis dropdown (injected) --- */
-  .nav-dd { position:relative; }
+  .nav-dd { position:relative; display:inline-flex; align-items:center; font-size:13px; line-height:1.55; }
   .dd-trigger { background:none; border:none; cursor:pointer; font:inherit; padding:0; color:var(--dim); font-size:13px; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
   .dd-trigger:hover, .dd-trigger.active { color:var(--accent-2); }
   .dd-caret { font-size:10px; opacity:.7; }
@@ -131,7 +131,7 @@
   .nav-links .lnk.join { border:1px solid var(--border); border-radius:8px; padding:5px 13px; color:var(--accent-2); }
   .nav-links .lnk.join:hover { background:var(--accent-dim,rgba(139,92,246,.14)); text-decoration:none; }
   @media (max-width:720px) {
-    .nav-dd { width:100%; }
+    .nav-dd { width:100%; display:block; }
     .dd-trigger { padding:13px 0; font-size:15px; border-top:1px solid var(--border); width:100%; text-align:left; }
     .dd-menu { display:flex; position:static; border:none; box-shadow:none; padding:2px 0 2px 14px; min-width:0; background:none; }
     .dd-menu .lnk { padding:10px 0; }
