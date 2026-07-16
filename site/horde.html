@@ -105,6 +105,8 @@
   .dd-menu .lnk:hover { background:var(--accent-dim,rgba(139,92,246,.14)); color:var(--accent-2); text-decoration:none; }
   .dd-menu .lnk.active { background:var(--accent-dim,rgba(139,92,246,.14)); color:var(--accent-2); }
   .nav-dd:hover .dd-menu, .nav-dd.open .dd-menu { display:flex; }
+  /* invisible bridge so the mouse can cross the gap to the menu without dropping hover (desktop only) */
+  @media (min-width:721px) { .nav-dd:hover::after, .nav-dd.open::after { content:""; position:absolute; top:100%; left:0; right:0; height:14px; } }
   .nav-links .lnk.join { border:1px solid var(--border); border-radius:8px; padding:5px 13px; color:var(--accent-2); }
   .nav-links .lnk.join:hover { background:var(--accent-dim,rgba(139,92,246,.14)); text-decoration:none; }
   @media (max-width:720px) {
@@ -316,9 +318,10 @@ if (localStorage.getItem(SKEY)) {
   var dd = document.querySelector('.nav-dd');
   if (dd) {
     var t = dd.querySelector('.dd-trigger');
-    t.addEventListener('click', function(e){
-      if (window.matchMedia('(max-width:720px)').matches) { e.preventDefault(); dd.classList.toggle('open'); }
-    });
+    var setOpen = function(o){ dd.classList.toggle('open', o); t.setAttribute('aria-expanded', o); };
+    t.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); setOpen(!dd.classList.contains('open')); });
+    document.addEventListener('click', function(e){ if (!dd.contains(e.target)) setOpen(false); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') setOpen(false); });
   }
   var path = (location.pathname || '/').replace(/index\.html$/,'').replace(/\.html$/,'').replace(/\/$/,'') || '/';
   document.querySelectorAll('.nav-links a.lnk').forEach(function(a){
