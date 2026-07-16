@@ -69,6 +69,26 @@
   .empty { text-align:center; color:var(--dimmer); padding:70px 20px; border:1px dashed var(--border); border-radius:13px; }
   footer { border-top:1px solid var(--border); color:var(--dimmer); font-size:12px; padding:26px 0 60px; }
   footer code { font-family:var(--mono); background:rgba(0,0,0,.3); border:1px solid var(--border); border-radius:6px; padding:1px 6px; color:var(--dim); }
+
+  /* --- unified nav: The Necropolis dropdown (injected) --- */
+  .nav-dd { position:relative; }
+  .dd-trigger { background:none; border:none; cursor:pointer; font:inherit; padding:0; color:var(--dim); font-size:13px; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+  .dd-trigger:hover, .dd-trigger.active { color:var(--accent-2); }
+  .dd-caret { font-size:10px; opacity:.7; }
+  .dd-menu { display:none; position:absolute; top:calc(100% + 10px); right:0; min-width:172px; flex-direction:column; background:var(--bg-2,#0d0f14); border:1px solid var(--border); border-radius:11px; padding:6px; box-shadow:0 14px 34px rgba(0,0,0,.5); }
+  .dd-menu .lnk { padding:9px 12px; border-radius:8px; font-size:13px; }
+  .dd-menu .lnk:hover { background:var(--accent-dim,rgba(139,92,246,.14)); color:var(--accent-2); text-decoration:none; }
+  .dd-menu .lnk.active { background:var(--accent-dim,rgba(139,92,246,.14)); color:var(--accent-2); }
+  .nav-dd:hover .dd-menu, .nav-dd.open .dd-menu { display:flex; }
+  .nav-links .lnk.join { border:1px solid var(--border); border-radius:8px; padding:5px 13px; color:var(--accent-2); }
+  .nav-links .lnk.join:hover { background:var(--accent-dim,rgba(139,92,246,.14)); text-decoration:none; }
+  @media (max-width:720px) {
+    .nav-dd { width:100%; }
+    .dd-trigger { padding:13px 0; font-size:15px; border-top:1px solid var(--border); width:100%; text-align:left; }
+    .dd-menu { display:flex; position:static; border:none; box-shadow:none; padding:2px 0 2px 14px; min-width:0; background:none; }
+    .dd-menu .lnk { padding:10px 0; }
+    .nav-links .lnk.join { margin-top:10px; text-align:center; }
+  }
 </style>
 </head>
 <body>
@@ -78,12 +98,17 @@
     <div class="nav-links">
       <a class="lnk" href="/#features">Features</a>
       <a class="lnk" href="/#quickstart">Quickstart</a>
-      <a class="lnk" href="/marketplace">Marketplace</a>
-      <a class="lnk" href="/vault">Vault</a>
-      <a class="lnk" href="/horde">Horde</a>
-      <a class="lnk active" href="/quests">Quests</a>
-      <a class="lnk" href="/leaderboard">Leaderboard</a>
-      <a class="lnk" href="/account">Join</a>
+      <div class="nav-dd">
+        <button class="lnk dd-trigger" type="button" aria-haspopup="true" aria-expanded="false">The Necropolis <span class="dd-caret">▾</span></button>
+        <div class="dd-menu">
+          <a class="lnk" href="/horde">Horde</a>
+          <a class="lnk" href="/bazaar">Bazaar</a>
+          <a class="lnk" href="/vault">Vault</a>
+          <a class="lnk" href="/quests">Quests</a>
+          <a class="lnk" href="/leaderboard">Leaderboard</a>
+        </div>
+      </div>
+      <a class="lnk join" href="/account" data-account>Join</a>
     </div>
     <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">☰</button>
   </div>
@@ -154,10 +179,31 @@ async function load(){
 }
 load();
 </script>
+
 <script>
-if (localStorage.getItem('rev_session')) {
-  document.querySelectorAll('.nav-links a.lnk[href="/account"]').forEach(a => { a.textContent = 'My Horde'; a.href = '/horde'; });
-}
+/* unified nav: mobile dropdown toggle + active-by-path + logged-in label */
+(function(){
+  var dd = document.querySelector('.nav-dd');
+  if (dd) {
+    var t = dd.querySelector('.dd-trigger');
+    t.addEventListener('click', function(e){
+      if (window.matchMedia('(max-width:720px)').matches) { e.preventDefault(); dd.classList.toggle('open'); }
+    });
+  }
+  var path = (location.pathname || '/').replace(/index\.html$/,'').replace(/\.html$/,'').replace(/\/$/,'') || '/';
+  document.querySelectorAll('.nav-links a.lnk').forEach(function(a){
+    var h = (a.getAttribute('href')||'');
+    if (h.charAt(0) !== '/' || h.indexOf('#') !== -1) return;
+    var hp = h.replace(/\/$/,'') || '/';
+    if (hp === path) {
+      a.classList.add('active');
+      var p = a.closest('.nav-dd'); if (p) p.querySelector('.dd-trigger').classList.add('active');
+    }
+  });
+  if (localStorage.getItem('rev_session')) {
+    document.querySelectorAll('.nav-links a.lnk[href="/account"]').forEach(function(a){ a.textContent = '◈ My Agents'; });
+  }
+})();
 </script>
 </body>
 </html>

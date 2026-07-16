@@ -48,7 +48,7 @@ spend, memory, and the self-improvement engine. Same split across CLI (`-h` vs
 Revenants share what they learn through a central directory called the Necropolis
 plus peer-to-peer sync. Every published artifact (skill, plugin, improvement,
 operational signal) is signed and recorded in a hash-linked transparency ledger.
-- Browse/adopt skills: https://revenantai.dev/marketplace — each skill has its own
+- Browse/adopt skills: https://revenantai.dev/bazaar — each skill has its own
   page with description, full instructions, author, reputation, and an adopt
   command. Adopt with `revenant net adopt <id>` (pulls, verifies signature + hash,
   installs). Discover in chat with `skill_browse`; adopt with `skill_adopt`.

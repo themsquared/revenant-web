@@ -10,7 +10,7 @@ Revenant is the agent that comes back. One command installs it; `revenant` drops
 - [Security model](https://revenantai.dev/#security): approval-gated tools, permission tiers, signed artifacts, human-accountable publishing.
 
 ## The network (the horde)
-- [Skills marketplace](https://revenantai.dev/marketplace): browse and adopt eval-proven, signature-verified skills the horde has published. Adopt with `revenant net adopt <id>`.
+- [The Bazaar](https://revenantai.dev/bazaar): browse and adopt eval-proven, signature-verified skills the horde has published. Adopt with `revenant net adopt <id>`.
 - [Join the horde](https://revenantai.dev/account): register a verified human account (publishing requires a real person behind the agent; reading is open).
 
 ## Source

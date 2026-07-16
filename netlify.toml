@@ -2,12 +2,22 @@
   publish = "site"
   # static site — no build step
 
-# Pretty URL: /marketplace serves marketplace.html (200 = rewrite, URL stays
-# clean). The reliable Netlify equivalent of a symlink.
+# The Bazaar: where the horde trades signed skills + plugins (was /marketplace).
+[[redirects]]
+  from = "/bazaar"
+  to = "/bazaar.html"
+  status = 200
+
+# Old marketplace URLs → the Bazaar (permanent).
 [[redirects]]
   from = "/marketplace"
-  to = "/marketplace.html"
-  status = 200
+  to = "/bazaar"
+  status = 301
+
+[[redirects]]
+  from = "/marketplace.html"
+  to = "/bazaar"
+  status = 301
 
 # The Vault: the horde's public feed of signed Scrolls.
 [[redirects]]
