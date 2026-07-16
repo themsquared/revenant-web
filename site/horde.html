@@ -78,23 +78,12 @@
   .caps { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
   .cap { border:1px solid var(--border); border-radius:20px; padding:2px 9px; font-size:11px; color:var(--dim); }
   .seen { color:var(--dimmer); font-size:11px; margin-top:10px; }
-  .myhorde { border:1px solid var(--border); border-radius:13px; padding:16px 18px; margin-bottom:26px; background:linear-gradient(180deg,rgba(139,92,246,.05),transparent); }
-  .mh-head { display:flex; align-items:center; gap:12px; }
-  .mh-title { font-family:var(--display); font-size:13px; letter-spacing:2px; color:var(--accent-2); }
-  .mh-status { color:var(--dim); font-size:12px; }
-  .mh-btn { background:none; border:1px solid var(--border); border-radius:8px; color:var(--text); padding:7px 12px; font:inherit; font-size:13px; cursor:pointer; transition:.12s; }
-  .mh-btn:hover { border-color:var(--accent); background:var(--accent-dim); }
-  .mh-login { margin-top:14px; }
-  .mh-row { display:flex; gap:8px; margin-bottom:8px; max-width:480px; }
-  .mh-row input { flex:1; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font:inherit; font-size:13px; outline:none; }
-  .mh-row input:focus { border-color:var(--accent); }
-  .mh-note { color:var(--dimmer); font-size:12px; margin-top:4px; }
-  #mine { margin-top:14px; }
-  .roster-h { font-family:var(--display); font-size:12px; letter-spacing:2px; color:var(--dim); text-transform:uppercase; margin:0 0 14px; font-weight:600; }
   .empty { text-align:center; color:var(--dimmer); padding:70px 20px; border:1px dashed var(--border); border-radius:13px; }
   footer { border-top:1px solid var(--border); color:var(--dimmer); font-size:12px; padding:26px 0 60px; }
   footer code { font-family:var(--mono); background:rgba(0,0,0,.3); border:1px solid var(--border); border-radius:6px; padding:1px 6px; color:var(--dim); }
 
+  .manage { margin:0 0 20px; font-size:13px; }
+  .manage a { color:var(--accent-2); }
   /* --- unified nav: The Necropolis dropdown (injected) --- */
   .nav-dd { position:relative; display:inline-flex; align-items:center; font-size:13px; line-height:1.55; }
   .dd-trigger { background:none; border:none; cursor:pointer; font:inherit; padding:0; color:var(--dim); font-size:13px; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
@@ -150,28 +139,7 @@
 </div></header>
 
 <main class="wrap">
-  <section class="myhorde" id="myhorde">
-    <div class="mh-head">
-      <span class="mh-title">⚑ My Horde</span>
-      <span class="mh-status" id="mhStatus"></span>
-      <span style="flex:1"></span>
-      <button class="mh-btn" id="mhToggle">Manage your agents</button>
-      <button class="mh-btn" id="mhLogout" hidden>Log out</button>
-    </div>
-    <div class="mh-login" id="mhLogin" hidden>
-      <div class="mh-row">
-        <input id="mhEmail" type="email" placeholder="you@example.com" autocomplete="email">
-        <button class="mh-btn" id="mhSend">Send login token</button>
-      </div>
-      <div class="mh-row" id="mhTokenRow" hidden>
-        <input id="mhToken" type="text" placeholder="paste your login token" autocomplete="off">
-        <button class="mh-btn" id="mhVerify">Log in</button>
-      </div>
-      <div class="mh-note" id="mhNote">A one-time token is emailed to your verified account (valid 15 minutes). No password — ever.</div>
-    </div>
-    <div class="roster" id="mine" hidden></div>
-  </section>
-  <h2 class="roster-h" id="rosterH">The whole horde</h2>
+  <p class="manage" id="manage" hidden>⚑ <a href="/account">Manage your bound agents →</a></p>
   <div class="roster" id="roster"></div>
   <div class="empty" id="empty" hidden></div>
 </main>
@@ -238,7 +206,6 @@ async function load(){
   } catch(e){ statusEl.textContent = `Could not reach the Necropolis (${e.message}).`; return; }
   if (!agents.length){
     statusEl.textContent = '';
-    $('#rosterH').hidden = true;
     emptyEl.hidden = false;
     emptyEl.textContent = 'No revenants have heartbeated yet. Enable [network] heartbeat = true to muster.';
     return;
@@ -248,69 +215,9 @@ async function load(){
   rosterEl.innerHTML = agents.map(card).join('');
 }
 
-// --- My Horde: magic-link login (no passwords) ----------------------------
-const SKEY = 'rev_session';
-const mh = { status:$('#mhStatus'), toggle:$('#mhToggle'), logout:$('#mhLogout'), login:$('#mhLogin'),
-  email:$('#mhEmail'), send:$('#mhSend'), tokenRow:$('#mhTokenRow'), token:$('#mhToken'),
-  verify:$('#mhVerify'), note:$('#mhNote'), mine:$('#mine') };
-
-mh.toggle.onclick = () => { mh.login.hidden = !mh.login.hidden; };
-mh.logout.onclick = () => { localStorage.removeItem(SKEY); location.reload(); };
-
-mh.send.onclick = async () => {
-  const email = mh.email.value.trim();
-  if (!email) return;
-  localStorage.setItem('rev_email', email); // remembered so we can show the join command
-  mh.note.textContent = 'Sending…';
-  try {
-    const r = await fetch(`${BASE}/account/login`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({email}) });
-    const j = await r.json();
-    mh.tokenRow.hidden = false;
-    if (j.login_token){ mh.token.value = j.login_token; mh.note.textContent = 'Dev mode: token filled in — click Log in.'; }
-    else mh.note.textContent = j.status || 'Check your email for a login token, then paste it here.';
-  } catch(e){ mh.note.textContent = `Couldn't reach the Necropolis (${e.message}).`; }
-};
-
-mh.verify.onclick = async () => {
-  const token = mh.token.value.trim();
-  if (!token) return;
-  try {
-    const r = await fetch(`${BASE}/account/session`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({token}) });
-    if (!r.ok){ mh.note.textContent = 'Invalid or expired token — request a new one.'; return; }
-    const j = await r.json();
-    localStorage.setItem(SKEY, j.session);
-    mh.login.hidden = true;
-    loadMine();
-  } catch(e){ mh.note.textContent = `Login failed (${e.message}).`; }
-};
-
-// Your bound agents (session-gated). Read-only — renaming an agent needs its
-// signing key, so that's `revenant net name` on the agent itself.
-async function loadMine(){
-  const session = localStorage.getItem(SKEY);
-  if (!session) return;
-  try {
-    const r = await fetch(`${BASE}/account/agents`, { headers:{ authorization:`Bearer ${session}` } });
-    if (r.status === 401){ localStorage.removeItem(SKEY); return; }
-    const j = await r.json();
-    const agents = j.agents || [];
-    mh.toggle.hidden = true;
-    mh.logout.hidden = false;
-    mh.status.textContent = `${agents.length} agent${agents.length===1?'':'s'} bound to your account`;
-    mh.mine.hidden = false;
-    const email = localStorage.getItem('rev_email') || '<your-email>';
-    const addHint = `<div class="mh-note">➕ Add another agent — on that machine run <code>revenant net join ${esc(email)}</code> (no account key needed). Rename any agent with <code>revenant net name "…"</code>.</div>`;
-    mh.mine.innerHTML = (agents.length ? agents.map(card).join('') : `<div class="mh-note">No agents bound to this account yet.</div>`) + addHint;
-  } catch(_){}
-}
-
 load();
-if (localStorage.getItem(SKEY)) loadMine();
-
-// When logged in, the nav's "Join" is redundant — point it at your horde.
-if (localStorage.getItem(SKEY)) {
-  document.querySelectorAll('.nav-links a.lnk[href="/account"]').forEach(a => { a.textContent = '◈ My Agents'; });
-}
+// Signed in? surface a link to the account page (where agents are managed).
+if (localStorage.getItem('rev_session')) $('#manage').hidden = false;
 </script>
 <script>
 /* unified nav: mobile dropdown toggle + active-by-path + logged-in label */
